@@ -1,28 +1,10 @@
-import os 
 import websocket
 import rel
 import json
 import pandas as pd
 import csv
 import Data
-
-processed_data = set()
-
-def init_file(folder, filename):
-    if(not os.path.exists(folder + filename)):
-        open(folder + filename, 'x')
-
-def init_processed_data(filename, processed_data) :
-    with open(filename, "r", encoding="utf-8", errors="ignore") as file:
-        for line in file:
-            if line and line not in processed_data:
-                processed_data.add(line[0])
-
-def init_scraper(filename):
-    for company in Data.companies:
-        init_file(Data.data_path, filename)
-        init_processed_data(Data.data_path + filename, processed_data)
-
+#TODO Fix one stock write to all csv
 def on_message(ws, message):
     format(message)
 
@@ -48,8 +30,8 @@ def format(data):
     formatted_data = []
 
     for item in pretty:
-        if item["v"][0] not in processed_data:
-            processed_data.add(item["v"][0])
+        if item["v"][0] not in Data.PROCESSED_DATA:
+            Data.PROCESSED_DATA.add(item["v"][0])
             formatted_data.append(item["v"])
     print(pd.DataFrame(formatted_data))
     
@@ -67,7 +49,7 @@ def append_to_csv(data, filename) :
     write_header(filename)
     lastrow = read_last_line(filename)
     with open(filename, 'a', newline = '') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames = Data.fieldNames)
+        writer = csv.DictWriter(csvfile, fieldnames = Data.FIELDNAMES)
         for i, item in enumerate(data):
             if(lastrow):
                 if(float(lastrow[1]) < float(item[0])):
@@ -95,7 +77,7 @@ def append_to_csv(data, filename) :
 
 def write_header(filename):
     with open(filename, 'a', newline = '') as csvfile :
-        writer = csv.DictWriter(csvfile, fieldnames = Data.fieldNames)
+        writer = csv.DictWriter(csvfile, fieldnames = Data.FIELDNAMES)
         csvfile.seek(0, 2)
         if(csvfile.tell() == 0):
             writer.writeheader()
@@ -111,7 +93,7 @@ if __name__ == "__main__":
     ws.run_forever(dispatcher=rel, reconnect = 5)  # Set dispatcher to automatic reconnection, 5 second reconnect delay if connection closed unexpectedly
 
     #For each time, the session id need to be changed
-    for company in Data.companies:
+    for company in Data.COMPANY:
         create_msg(ws, "chart_create_session", [company[1],""])
         create_msg(ws, "resolve_symbol", [company[1],"sds_sym_1",f'={{"adjustment":"splits","session":"regular","symbol":"{company[2]}"}}'])
         create_msg(ws, "create_series", [company[1],"sds_1","s1","sds_sym_1","1",10000,""])
