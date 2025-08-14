@@ -1,16 +1,27 @@
+import os 
 import websocket
-import _thread
-import time
 import rel
 import json
 import pandas as pd
 import csv
+import Data
 
-companies = [["./stock/tsla.csv", "cs_wMNtbca45Tzg", "NASDAQ:TSLA"],
-           ["./stock/nvda.csv", "cs_tuvpERVQgKi0", "NVDA"], 
-           ["./stock/msft.csv", "cs_5HfW5T8QTNhv", "NASDAQ:MSFT"]
-           ]
 processed_data = set()
+
+def init_file(folder, filename):
+    if(not os.path.exists(folder + filename)):
+        open(folder + filename, 'x')
+
+def init_processed_data(filename, processed_data) :
+    with open(filename, "r", encoding="utf-8", errors="ignore") as file:
+        for line in file:
+            if line and line not in processed_data:
+                processed_data.add(line[0])
+
+def init_scraper(filename):
+    for company in Data.companies:
+        init_file(Data.data_path, filename)
+        init_processed_data(Data.data_path + filename, processed_data)
 
 def on_message(ws, message):
     format(message)
@@ -35,42 +46,62 @@ def format(data):
     pretty = json.loads(data[start + 4 : end])
     
     formatted_data = []
+
     for item in pretty:
         if item["v"][0] not in processed_data:
             processed_data.add(item["v"][0])
             formatted_data.append(item["v"])
     print(pd.DataFrame(formatted_data))
     
-    for company in companies:
-        append_to_csv(formatted_data, company[0])
+    append_to_csv(formatted_data, Data.data_path + company[0])
 
 def read_last_line(path):
-    with open(path, "r", encoding="utf-8", errors="ignore") as file:
-        last_line = file.readlines()[-1].split(",")
+    with open(path, "r", encoding="utf-8", errors="ignore") as file: 
+        lines = file.readlines()
+        if not lines:
+            return None
+        last_line = lines[-1].strip().split(",")
     return last_line
-    
-def append_to_csv(data, filename):
-    fieldNames = ['Index', 'Time', 'Open', 'High', 'Low', 'Close', 'Volume']
+
+def append_to_csv(data, filename) : 
+    write_header(filename)
     lastrow = read_last_line(filename)
     with open(filename, 'a', newline = '') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames= fieldNames)
+        writer = csv.DictWriter(csvfile, fieldnames = Data.fieldNames)
+        for i, item in enumerate(data):
+            if(lastrow):
+                if(float(lastrow[1]) < float(item[0])):
+                    row = {
+                        'Index': i,
+                        'Time': item[0],
+                        'Open': item[1],
+                        'High': item[2],
+                        'Low': item[3],
+                        'Close': item[4],
+                        'Volume': item[5]
+                    }
+                    writer.writerow(row)
+            else:
+                row = {
+                        'Index': i,
+                        'Time': item[0],
+                        'Open': item[1],
+                        'High': item[2],
+                        'Low': item[3],
+                        'Close': item[4],
+                        'Volume': item[5]
+                    }
+                writer.writerow(row)
+
+def write_header(filename):
+    with open(filename, 'a', newline = '') as csvfile :
+        writer = csv.DictWriter(csvfile, fieldnames = Data.fieldNames)
         csvfile.seek(0, 2)
         if(csvfile.tell() == 0):
             writer.writeheader()
-        for i, item in enumerate(data):
-            if(float(lastrow[1]) < float(item[0])):
-                row = {
-                    'Index': i,
-                    'Time': item[0],
-                    'Open': item[1],
-                    'High': item[2],
-                    'Low': item[3],
-                    'Close': item[4],
-                    'Volume': item[5]
-                }
-                writer.writerow(row)
 
 if __name__ == "__main__":
+
     websocket.enableTrace(True)
     ws = websocket.WebSocketApp("wss://data.tradingview.com/socket.io/websocket",
                               on_open=on_open,
@@ -80,21 +111,10 @@ if __name__ == "__main__":
     ws.run_forever(dispatcher=rel, reconnect = 5)  # Set dispatcher to automatic reconnection, 5 second reconnect delay if connection closed unexpectedly
 
     #For each time, the session id need to be changed
-    for company in companies:
+    for company in Data.companies:
         create_msg(ws, "chart_create_session", [company[1],""])
         create_msg(ws, "resolve_symbol", [company[1],"sds_sym_1",f'={{"adjustment":"splits","session":"regular","symbol":"{company[2]}"}}'])
         create_msg(ws, "create_series", [company[1],"sds_1","s1","sds_sym_1","1",10000,""])
-    """
-    create_msg(ws, "chart_create_session", [tesla_session,""])
-    create_msg(ws, "resolve_symbol", [tesla_session,"sds_sym_1",f'={{"adjustment":"splits","session":"regular","symbol":"{tesla}"}}'])
-    create_msg(ws, "create_series", [tesla_session,"sds_1","s1","sds_sym_1","1",10000,""])
-    """
     
     rel.signal(2, rel.abort)  # Keyboard Interrupt
-    rel.dispatch()
-
-"""
-Tesla   "cs_wMNtbca45Tzg",""    "cs_wMNtbca45Tzg","sds_sym_1","={\"adjustment\":\"splits\",\"session\":\"regular\",\"symbol\":\"NASDAQ:TSLA\"}"     "cs_wMNtbca45Tzg","sds_1","s1","sds_sym_1","1",10000,""
-NVDA    "cs_tuvpERVQgKi0",""    "cs_tuvpERVQgKi0","sds_sym_1","={\"adjustment\":\"splits\",\"session\":\"regular\",\"symbol\":\"NVDA\"}"    "cs_tuvpERVQgKi0","sds_1","s1","sds_sym_1","1",10000,""
-MSFT    "cs_5HfW5T8QTNhv",""    "cs_5HfW5T8QTNhv","sds_sym_1","={\"adjustment\":\"splits\",\"session\":\"regular\",\"symbol\":\"NASDAQ:MSFT\"}"     "cs_5HfW5T8QTNhv","sds_1","s1","sds_sym_1","1",10000,""
-"""
+    rel.dispatch()  
