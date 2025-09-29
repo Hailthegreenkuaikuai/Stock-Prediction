@@ -3,6 +3,7 @@ import rel
 import json
 import threading
 import Scraper
+import Data
 
 def make_connection(instrument):
 
@@ -31,9 +32,9 @@ def make_connection(instrument):
                             on_close = on_close)
     ws.run_forever(dispatcher=rel)  #The websocket will run forever until ws.close()
 
-    create_msg(ws, "chart_create_session", [instrument[1],""])
-    create_msg(ws, "resolve_symbol", [instrument[1],"sds_sym_1",f'={{"adjustment":"splits","session":"regular","symbol":"{instrument[2]}"}}'])
-    create_msg(ws, "create_series", [instrument[1],"sds_1","s1","sds_sym_1","1",10000,""])
+    create_msg(ws, "chart_create_session", [Data.SESSION_IDENTIFIER,""])
+    create_msg(ws, "resolve_symbol", [Data.SESSION_IDENTIFIER,"sds_sym_1",f'={{"adjustment":"splits","session":"regular","symbol":"{instrument[1]}"}}'])
+    create_msg(ws, "create_series", [Data.SESSION_IDENTIFIER,"sds_1","s1","sds_sym_1","1",10000,""])
 
     rel.signal(2, rel.abort) # Keyboard Interrupt
     rel.dispatch()

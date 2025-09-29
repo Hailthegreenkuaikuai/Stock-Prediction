@@ -7,6 +7,11 @@ This file contains various data configurations used in the project.
 
 ## Folder Paths
 
+- **Current Working Directory:**  
+    ```python
+    PATH = "E:\code\Stock-Prediction"
+    ```
+
 - **Original Data Folder:**  
     ```python
     DATA_PATH = "./data"
@@ -72,4 +77,4 @@ The field names used in the CSV files:
 ```python
 FIELDNAMES = ['Index', 'Time', 'Open', 'High', 'Low', 'Close', 'Volume']
 ```
-_Last Update: **2025-08-17**_
+_Last Update: **2025-09-07**_

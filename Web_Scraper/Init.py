@@ -1,6 +1,7 @@
 import os 
 import Data 
-
+import pandas as pd
+os.chdir(Data.PATH)
 #Function to create folder
 def init_folder(folder):
     try:
@@ -31,3 +32,12 @@ def init_processed_data(filename) :
                     Data.PROCESSED_DATA.add(line[0])
     except Exception as e:
         print(f"An error occur when init processed data: {e}")
+
+def indexing(filename):
+    file_path = "./data/" + filename
+    try:
+        df = pd.read_csv(file_path)
+        df = df.drop(columns=['Index'])
+        df.to_csv(file_path, index=True, index_label='Index')
+    except Exception as e:
+        print(f"An error occur when indexing: {e}")

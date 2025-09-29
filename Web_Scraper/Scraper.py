@@ -5,7 +5,8 @@ import csv
 import Data
 import rel
 import threading
-
+import os 
+os.chdir(Data.PATH)
 #Format data 
 def format(data, instrument, ws):
     start = data.find('"s":[')
@@ -23,6 +24,8 @@ def format(data, instrument, ws):
     print(pd.DataFrame(formatted_data))
     
     append_to_csv(formatted_data, filename, ws)
+
+    return 
 
 def read_last_line(path):
     with open(path, "r", encoding="utf-8", errors="ignore") as file: 
@@ -58,11 +61,11 @@ def append_to_csv(data, filename, ws) :
                         'Open': item[1],
                         'High': item[2],
                         'Low': item[3],
-                        'Close': item[4],
+                        'Close': item[4],   
                         'Volume': item[5]
                     }
                 writer.writerow(row)   
-    threading.Timer(5, ws.close).start()
+    return
     
 #Function for writing header for csv file 
 def write_header(filename):

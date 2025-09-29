@@ -11,4 +11,4 @@ if __name__ == "__main__":
         Init.init_file(instrument[0])
         Init.init_processed_data(instrument[0])
         Connector.make_connection(instrument)
-        
+        Init.indexing(instrument[0])
